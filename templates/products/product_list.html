@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Список продуктов{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-list"></i> Список продуктов</h1>
+        <a href="{% url 'products:product_create' %}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Добавить продукт
+        </a>
+    </div>
+
+    {% if products %}
+        <div class="row">
+            {% for product in products %}
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ product.name }}</h5>
+                            <p class="card-text text-muted">
+                                {{ product.description|truncatewords:20 }}
+                            </p>
+                            <p class="card-text">
+                                <strong>Цена:</strong> {{ product.price }} ₽
+                            </p>
+                            <p class="card-text">
+                                <span class="badge {% if product.is_available %}bg-success{% else %}bg-danger{% endif %}">
+                                    {% if product.is_available %}В наличии{% else %}Нет в наличии{% endif %}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'products:product_update' product.pk %}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-edit"></i> Редактировать
+                                </a>
+                                <a href="{% url 'products:product_delete' product.pk %}" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-trash"></i> Удалить
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> Продуктов пока нет.
+            <a href="{% url 'products:product_create' %}">Создайте первый продукт</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
