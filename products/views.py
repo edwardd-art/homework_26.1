@@ -1,51 +1,68 @@
+# products/views.py
+
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse_lazy
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.contrib import messages
-from .models import Product
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from .models import Product  # ← ЭТОТ ИМПОРТ ВАЖЕН!
 from .forms import ProductForm
 
-def product_list(request):
-    """Список продуктов"""
-    products = Product.objects.all().order_by('-created_at')
-    return render(request, 'products/product_list.html', {'products': products})
 
-def product_create(request):
-    """Создание продукта"""
-    if request.method == 'POST':
-        form = ProductForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Продукт успешно создан!')
-            return redirect('products:product_list')
-    else:
-        form = ProductForm()
-    return render(request, 'products/product_form.html', {
-        'form': form,
-        'title': 'Создать продукт',
-        'button_text': 'Создать'
-    })
+class ProductListView(ListView):
+    """Список всех продуктов"""
+    model = Product
+    template_name = 'products/product_list.html'
+    context_object_name = 'products'
+    ordering = ['-created_at']
 
-def product_update(request, pk):
+
+@method_decorator(login_required(login_url='users:login'), name='dispatch')
+class ProductCreateView(CreateView):
+    """Создание нового продукта"""
+    model = Product
+    form_class = ProductForm
+    template_name = 'products/product_form.html'
+    success_url = reverse_lazy('products:product_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Создать продукт'
+        context['button_text'] = 'Создать'
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Продукт успешно создан!')
+        return super().form_valid(form)
+
+
+@method_decorator(login_required(login_url='users:login'), name='dispatch')
+class ProductUpdateView(UpdateView):
     """Редактирование продукта"""
-    product = get_object_or_404(Product, pk=pk)
-    if request.method == 'POST':
-        form = ProductForm(request.POST, instance=product)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Продукт успешно обновлен!')
-            return redirect('products:product_list')
-    else:
-        form = ProductForm(instance=product)
-    return render(request, 'products/product_form.html', {
-        'form': form,
-        'title': 'Редактировать продукт',
-        'button_text': 'Сохранить'
-    })
+    model = Product
+    form_class = ProductForm
+    template_name = 'products/product_form.html'
+    success_url = reverse_lazy('products:product_list')
 
-def product_delete(request, pk):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Редактировать продукт'
+        context['button_text'] = 'Сохранить'
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Продукт успешно обновлен!')
+        return super().form_valid(form)
+
+
+@method_decorator(login_required(login_url='users:login'), name='dispatch')
+class ProductDeleteView(DeleteView):
     """Удаление продукта"""
-    product = get_object_or_404(Product, pk=pk)
-    if request.method == 'POST':
-        product.delete()
+    model = Product
+    template_name = 'products/product_confirm_delete.html'
+    success_url = reverse_lazy('products:product_list')
+
+    def delete(self, request, *args, **kwargs):
         messages.success(request, 'Продукт успешно удален!')
-        return redirect('products:product_list')
-    return render(request, 'products/product_confirm_delete.html', {'product': product})
+        return super().delete(request, *args, **kwargs)
