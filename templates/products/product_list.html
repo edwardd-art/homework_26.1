@@ -5,10 +5,12 @@
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="fas fa-list"></i> Список продуктов</h1>
-        <a href="{% url 'products:product_create' %}" class="btn btn-success">
-            <i class="fas fa-plus"></i> Добавить продукт
-        </a>
+        <h1><i class="fas fa-list"></i> Все продукты</h1>
+        {% if user.is_authenticated %}
+            <a href="{% url 'products:product_create' %}" class="btn btn-success">
+                <i class="fas fa-plus"></i> Добавить продукт
+            </a>
+        {% endif %}
     </div>
 
     {% if products %}
@@ -28,16 +30,49 @@
                                 <span class="badge {% if product.is_available %}bg-success{% else %}bg-danger{% endif %}">
                                     {% if product.is_available %}В наличии{% else %}Нет в наличии{% endif %}
                                 </span>
+                                <span class="badge {% if product.is_published %}bg-primary{% else %}bg-warning{% endif %}">
+                                    {% if product.is_published %}Опубликован{% else %}На модерации{% endif %}
+                                </span>
                             </p>
+                            {% if product.owner %}
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        <i class="fas fa-user"></i> {{ product.owner.email }}
+                                    </small>
+                                </p>
+                            {% endif %}
                         </div>
                         <div class="card-footer bg-transparent">
-                            <div class="d-flex gap-2">
-                                <a href="{% url 'products:product_update' product.pk %}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-edit"></i> Редактировать
-                                </a>
-                                <a href="{% url 'products:product_delete' product.pk %}" class="btn btn-danger btn-sm">
-                                    <i class="fas fa-trash"></i> Удалить
-                                </a>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% if user.is_authenticated %}
+                                    <!-- Редактирование: только владелец или модератор -->
+                                    {% if product.owner == user or perms.products.can_unpublish_product %}
+                                        <a href="{% url 'products:product_update' product.pk %}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-edit"></i> Редактировать
+                                        </a>
+                                    {% endif %}
+
+                                    <!-- Удаление: владелец или модератор -->
+                                    {% if product.owner == user or perms.products.delete_product %}
+                                        <a href="{% url 'products:product_delete' product.pk %}" class="btn btn-danger btn-sm">
+                                            <i class="fas fa-trash"></i> Удалить
+                                        </a>
+                                    {% endif %}
+
+                                    <!-- Отмена публикации: только модератор -->
+                                    {% if perms.products.can_unpublish_product and product.is_published %}
+                                        <a href="{% url 'products:unpublish' product.pk %}" class="btn btn-warning btn-sm">
+                                            <i class="fas fa-eye-slash"></i> Снять с публикации
+                                        </a>
+                                    {% endif %}
+
+                                    <!-- Публикация: владелец или модератор -->
+                                    {% if not product.is_published and product.owner == user or perms.products.can_unpublish_product %}
+                                        <a href="{% url 'products:publish' product.pk %}" class="btn btn-success btn-sm">
+                                            <i class="fas fa-eye"></i> Опубликовать
+                                        </a>
+                                    {% endif %}
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -46,8 +81,10 @@
         </div>
     {% else %}
         <div class="alert alert-info">
-            <i class="fas fa-info-circle"></i> Продуктов пока нет.
-            <a href="{% url 'products:product_create' %}">Создайте первый продукт</a>
+            <i class="fas fa-info-circle"></i> Опубликованных продуктов пока нет.
+            {% if user.is_authenticated %}
+                <a href="{% url 'products:product_create' %}">Создайте первый продукт</a>
+            {% endif %}
         </div>
     {% endif %}
 </div>
