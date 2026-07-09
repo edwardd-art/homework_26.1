@@ -1,7 +1,14 @@
+# products/models.py
+
 from django.db import models
+from django.conf import settings
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 class Product(models.Model):
+    # Существующие поля
     name = models.CharField(
         max_length=200,
         verbose_name='Название',
@@ -19,9 +26,24 @@ class Product(models.Model):
     )
     is_available = models.BooleanField(
         default=True,
-        verbose_name='В наличии',
-        help_text='Отметьте, если продукт есть в наличии'
+        verbose_name='В наличии'
     )
+
+    # НОВЫЕ ПОЛЯ
+    is_published = models.BooleanField(
+        default=False,  # По умолчанию не опубликован
+        verbose_name='Опубликован',
+        help_text='Отметьте, если продукт опубликован'
+    )
+    owner = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='products',
+        verbose_name='Владелец',
+        null=True,  # Временно разрешаем null для существующих продуктов
+        blank=True
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='Дата создания'
@@ -35,6 +57,11 @@ class Product(models.Model):
         verbose_name = 'Продукт'
         verbose_name_plural = 'Продукты'
         ordering = ['-created_at']
+
+        # Кастомные права
+        permissions = [
+            ('can_unpublish_product', 'Может отменять публикацию продукта'),
+        ]
 
     def __str__(self):
         return self.name
